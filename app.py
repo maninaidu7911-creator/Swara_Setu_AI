@@ -1,9 +1,10 @@
 import streamlit as st
 import os
 import requests
+import base64
+import streamlit.components.v1 as components
 from streamlit_lottie import st_lottie
 from swara_engine import process_audio
-from streamlit_mic_recorder import mic_recorder
 
 # --- Page Config ---
 st.set_page_config(page_title="Swara Setu AI", page_icon="🌐", layout="centered")
@@ -20,7 +21,6 @@ st.markdown("""
     
     #MainMenu, header, footer {visibility: hidden;}
 
-    /* Premium Typography */
     .hero-title {
         font-weight: 800;
         font-size: 3.5rem;
@@ -42,7 +42,6 @@ st.markdown("""
         animation: fadeIn 1.2s ease-in;
     }
 
-    /* Premium Streamlit Buttons (Applies to Translate & Swap) */
     div.stButton > button {
         background: linear-gradient(90deg, #3b82f6, #2563eb);
         color: white;
@@ -66,7 +65,6 @@ st.markdown("""
         box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
 
-    /* Results Box Styling */
     div[data-testid="stInfo"], div[data-testid="stSuccess"], div[data-testid="stError"] {
         border-radius: 12px;
         background: #F8FAFC;
@@ -74,7 +72,6 @@ st.markdown("""
         color: #334155;
     }
 
-    /* Custom Designer Footer */
     .designer-footer {
         text-align: center;
         margin-top: 50px;
@@ -211,43 +208,45 @@ else:
     
     st.divider()
 
-    # --- FULLY CLICKABLE MIC RECORDER ---
-    st.markdown("<div style='text-align: center; margin-bottom: 10px; font-weight: bold; color: #1E3A8A;'>🎙️ Audio Input Zone</div>", unsafe_allow_html=True)
+    # --- CUSTOM FULL-WIDTH AUDIO RECORDER BUTTON ---
+    st.markdown("<div style='text-align: center; margin-bottom: 15px; font-weight: bold; color: #1E3A8A;'>🎙️ Audio Input Zone</div>", unsafe_allow_html=True)
     
-    audio = mic_recorder(
-        start_prompt="Tap Anywhere Here to Record",
-        stop_prompt="⏹️ Tap to Stop Recording",
-        key='mic_recorder'
-    )
+    with open("components.html", "r") as f:
+        html_string = f.read()
+    
+    audio_base64 = components.html(html_string, height=100)
 
     # Process Audio if captured
-    if audio:
-        audio_bytes = audio['bytes']
-        temp_input_path = "temp_input.wav"
-        
-        with open(temp_input_path, "wb") as f:
-            f.write(audio_bytes)
+    if audio_base64:
+        try:
+            audio_bytes = base64.b64decode(audio_base64)
+            temp_input_path = "temp_input.wav"
             
-        st.write("")
-        st.audio(temp_input_path, format="audio/wav")
-        st.write("")
-
-        if st.button(t["translate_btn"], type="primary"):
-            
-            if lottie_wave:
-                st_lottie(lottie_wave, height=80, key="translating")
+            with open(temp_input_path, "wb") as f:
+                f.write(audio_bytes)
                 
-            with st.spinner(t['translating']):
-                original_text, translated_text, result = process_audio(temp_input_path, src_code, tgt_code)
+            st.write("")
+            st.audio(temp_input_path, format="audio/wav")
+            st.write("")
 
-            if original_text and translated_text and result.endswith('.mp3'):
-                st.success("Translation Successful")
-                st.info(f"**Original ({source_language}):**\n\n{original_text}")
-                st.success(f"**Translation ({target_language}):**\n\n{translated_text}")
-                st.write("")
-                st.audio(result, format="audio/mp3", autoplay=True) 
-            else:
-                st.error(f"Error: {result}")
+            if st.button(t["translate_btn"], type="primary"):
+                
+                if lottie_wave:
+                    st_lottie(lottie_wave, height=80, key="translating")
+                    
+                with st.spinner(t['translating']):
+                    original_text, translated_text, result = process_audio(temp_input_path, src_code, tgt_code)
+
+                if original_text and translated_text and result.endswith('.mp3'):
+                    st.success("Translation Successful")
+                    st.info(f"**Original ({source_language}):**\n\n{original_text}")
+                    st.success(f"**Translation ({target_language}):**\n\n{translated_text}")
+                    st.write("")
+                    st.audio(result, format="audio/mp3", autoplay=True) 
+                else:
+                    st.error(f"Error: {result}")
+        except BaseException as e:
+            pass # Handle initial empty state
 
     # Custom Footer
     st.markdown("""
@@ -255,4 +254,3 @@ else:
             <p>Designed by <a href="https://www.linkedin.com/in/dandabattula-manikanta" target="_blank">Manikanta</a></p>
         </div>
     """, unsafe_allow_html=True)
-    
