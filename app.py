@@ -1,9 +1,10 @@
 import streamlit as st
 import os
 import requests
+import base64
+import streamlit.components.v1 as components
 from streamlit_lottie import st_lottie
 from swara_engine import process_audio
-from streamlit_mic_recorder import mic_recorder
 
 # --- Page Config ---
 st.set_page_config(page_title="Swara Setu AI", page_icon="🌐", layout="centered")
@@ -19,6 +20,7 @@ st.markdown("""
     }
     
     #MainMenu, header, footer {visibility: hidden;}
+    iframe {border: none !important;} 
 
     .hero-title {
         font-weight: 800;
@@ -27,6 +29,7 @@ st.markdown("""
         background: linear-gradient(90deg, #2563EB, #9333EA);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        animation: fadeInDown 0.8s ease-out;
         margin-bottom: 0px;
     }
     
@@ -36,16 +39,18 @@ st.markdown("""
         font-size: 1.1rem;
         font-weight: 600;
         margin-top: 5px;
-        margin-bottom: 40px;
+        margin-bottom: 45px;
+        animation: fadeIn 1.2s ease-in;
     }
 
-    /* Style the Primary Translate Button */
+    /* Translate Button Styling */
     button[data-testid="baseButton-primary"] {
         background: linear-gradient(90deg, #3b82f6, #2563eb) !important;
         color: white !important;
         border-radius: 12px !important;
         font-weight: 600 !important;
         padding: 10px 24px !important;
+        border: none !important;
         box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2) !important;
         transition: all 0.3s ease !important;
     }
@@ -53,8 +58,22 @@ st.markdown("""
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4) !important;
     }
+    
+    /* Swap & Settings Button Styling */
+    button[data-testid="baseButton-secondary"] {
+        background: white !important;
+        color: #2563eb !important;
+        border: 2px solid #eff6ff !important;
+        border-radius: 12px !important;
+        font-weight: 600 !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+        transition: all 0.3s ease !important;
+    }
+    button[data-testid="baseButton-secondary"]:hover {
+        border-color: #3b82f6 !important;
+    }
 
-    /* Results Box Styling */
+    /* Results Boxes */
     div[data-testid="stInfo"], div[data-testid="stSuccess"], div[data-testid="stError"] {
         border-radius: 12px;
         background: #F8FAFC;
@@ -75,6 +94,15 @@ st.markdown("""
         color: #9333EA;
         font-weight: 800;
         text-decoration: none;
+    }
+
+    @keyframes fadeInDown {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
     }
     </style>
 """, unsafe_allow_html=True)
@@ -188,42 +216,46 @@ else:
     
     st.write("<br>", unsafe_allow_html=True)
 
-    # --- MASSIVE NATIVE RECORD BUTTON ---
-    audio = mic_recorder(
-        start_prompt="🎙️ Tap Anywhere Here to Record Audio",
-        stop_prompt="⏹️ Tap to Stop Recording",
-        use_container_width=True, 
-        key='mic_recorder'
-    )
+    # --- CUSTOM SOLID RED AUDIO RECORDER BUTTON ---
+    with open("components.html", "r") as f:
+        html_string = f.read()
+    
+    audio_base64 = components.html(html_string, height=85)
 
-    # Process Audio if captured
-    if audio:
-        audio_bytes = audio['bytes']
-        temp_input_path = "temp_input.wav"
-        
-        with open(temp_input_path, "wb") as f:
-            f.write(audio_bytes)
-            
-        st.write("")
-        st.audio(temp_input_path, format="audio/wav")
-        st.write("")
+    # Save audio to session state memory
+    if audio_base64:
+        st.session_state['recorded_audio'] = audio_base64
 
-        if st.button(t["translate_btn"], type="primary", use_container_width=True):
+    # Process Audio if it exists in memory
+    if 'recorded_audio' in st.session_state and st.session_state['recorded_audio']:
+        try:
+            audio_bytes = base64.b64decode(st.session_state['recorded_audio'])
+            temp_input_path = "temp_input.wav"
             
-            if lottie_wave:
-                st_lottie(lottie_wave, height=80, key="translating")
+            with open(temp_input_path, "wb") as f:
+                f.write(audio_bytes)
                 
-            with st.spinner(t['translating']):
-                original_text, translated_text, result = process_audio(temp_input_path, src_code, tgt_code)
+            st.audio(temp_input_path, format="audio/wav")
+            st.write("")
 
-            if original_text and translated_text and result.endswith('.mp3'):
-                st.success("Translation Successful")
-                st.info(f"**Original ({source_language}):**\n\n{original_text}")
-                st.success(f"**Translation ({target_language}):**\n\n{translated_text}")
-                st.write("")
-                st.audio(result, format="audio/mp3", autoplay=True) 
-            else:
-                st.error(f"Error: {result}")
+            if st.button(t["translate_btn"], type="primary", use_container_width=True):
+                
+                if lottie_wave:
+                    st_lottie(lottie_wave, height=80, key="translating")
+                    
+                with st.spinner(t['translating']):
+                    original_text, translated_text, result = process_audio(temp_input_path, src_code, tgt_code)
+
+                if original_text and translated_text and result.endswith('.mp3'):
+                    st.success("Translation Successful")
+                    st.info(f"**Original ({source_language}):**\n\n{original_text}")
+                    st.success(f"**Translation ({target_language}):**\n\n{translated_text}")
+                    st.write("")
+                    st.audio(result, format="audio/mp3", autoplay=True) 
+                else:
+                    st.error(f"Error: {result}")
+        except Exception as e:
+            pass 
 
     # Custom Footer
     st.markdown("""
