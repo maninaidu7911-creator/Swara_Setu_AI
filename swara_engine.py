@@ -1,45 +1,46 @@
 import speech_recognition as sr
+from googletrans import Translator
 from gtts import gTTS
 import os
-import requests
 
-def raw_google_api_translate(text, source_lang, target_lang):
-    """Bypasses API limits for all global languages."""
-    url = "https://translate.googleapis.com/translate_a/single"
-    params = {"client": "gtx", "sl": source_lang, "tl": target_lang, "dt": "t", "q": text}
-    response = requests.get(url, params=params)
-    response.raise_for_status()
-    return "".join([sentence[0] for sentence in response.json()[0]])
-
-def process_audio(audio_file_path, source_lang_code, target_lang_code):
+def process_audio(audio_file_path, src_lang, tgt_lang):
     recognizer = sr.Recognizer()
-    
-    # 1. Speech to Text (Now dynamic for any language)
+    translator = Translator()
+
     try:
+        # 1. Recognize spoken audio
         with sr.AudioFile(audio_file_path) as source:
             audio_data = recognizer.record(source)
-            # Passes the exact language code (e.g., 'es' for Spanish, 'te' for Telugu)
-            recognized_text = recognizer.recognize_google(audio_data, language=source_lang_code)
-    except sr.UnknownValueError:
-        return None, None, "Could not understand the audio. Please speak clearly."
-    except Exception as e:
-        return None, None, f"Error processing audio: {e}"
-
-    # 2. Translation
-    try:
-        translated_text = raw_google_api_translate(recognized_text, source_lang_code, target_lang_code)
-    except Exception as e:
-        return recognized_text, None, f"Translation error: {e}"
-
-    # 3. Text to Speech
-    try:
-        output_audio_path = "translated_output.mp3"
-        if os.path.exists(output_audio_path):
-            os.remove(output_audio_path)
+        
+        # Speech recognition mapping
+        speech_lang = src_lang
+        if src_lang == 'zh-CN':
+            speech_lang = 'zh'
             
-        tts = gTTS(text=translated_text, lang=target_lang_code)
-        tts.save(output_audio_path)
-    except Exception as e:
-        return recognized_text, translated_text, f"Audio generation error: {e}"
+        original_text = recognizer.recognize_google(audio_data, language=speech_lang)
 
-    return recognized_text, translated_text, output_audio_path
+        # 2. Smart Bridge Translation 
+        # If neither the source nor target is English, route it through English first to preserve names and grammar.
+        if src_lang != 'en' and tgt_lang != 'en':
+            # Step A: Translate regional language to English (Locks in "Manikanta")
+            english_bridge = translator.translate(original_text, src=src_lang, dest='en').text
+            
+            # Step B: Translate the perfect English sentence into the final target language
+            translated_text = translator.translate(english_bridge, src='en', dest=tgt_lang).text
+        else:
+            # Standard direct translation if English is already involved
+            translated_text = translator.translate(original_text, src=src_lang, dest=tgt_lang).text
+
+        # 3. Generate Audio Output
+        tts_lang = tgt_lang
+        if tgt_lang == 'zh-CN':
+            tts_lang = 'zh-CN'
+            
+        tts = gTTS(text=translated_text, lang=tts_lang)
+        output_file = "output.mp3"
+        tts.save(output_file)
+
+        return original_text, translated_text, output_file
+
+    except Exception as e:
+        return None, None, str(e)
