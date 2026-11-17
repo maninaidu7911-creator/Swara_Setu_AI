@@ -2,68 +2,30 @@ import streamlit as st
 from audio_recorder_streamlit import audio_recorder
 import os
 import requests
-from streamlit_lottie import st_lottie
 from swara_engine import process_audio
 
 # --- Page Config ---
-st.set_page_config(page_title="Swara Setu AI | Global Communicator", page_icon="🌍", layout="centered")
+st.set_page_config(page_title="Swara Setu AI", page_icon="🌐", layout="centered")
 
-# --- Minimalist Professional CSS ---
+# --- Minimalist CSS (Only for hiding watermarks and footer) ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-    
-    .stApp {
-        background-color: #F8FAFC;
-        font-family: 'Inter', sans-serif;
-    }
-    
+    #MainMenu {visibility: hidden;}
     header {visibility: hidden;}
     footer {visibility: hidden;}
-
-    .main-title {
-        color: #1E3A8A;
-        font-weight: 800;
-        font-size: 3rem;
-        text-align: center;
-        margin-bottom: 5px;
-    }
-    .sub-title {
-        text-align: center;
-        color: #64748B;
-        font-size: 1.1rem;
-        margin-bottom: 40px;
-    }
-
-    div.stButton > button {
-        background: #2563EB;
-        color: white;
-        border-radius: 8px;
-        font-weight: 600;
-        border: none;
-        transition: all 0.2s;
-    }
-    div.stButton > button:hover {
-        background: #1D4ED8;
-    }
     
-    div.stButton > button:contains("🔄") {
-        background: white !important;
-        color: #2563EB !important;
-        border: 1px solid #CBD5E1 !important;
-    }
-
     .custom-footer {
         text-align: center;
-        margin-top: 60px;
+        margin-top: 50px;
         padding-top: 20px;
-        border-top: 1px solid #E2E8F0;
-        color: #64748B;
+        border-top: 1px solid rgba(128, 128, 128, 0.2);
+        font-size: 0.9rem;
+        color: gray;
     }
     .custom-footer a {
         color: #2563EB;
         text-decoration: none;
-        font-weight: 600;
+        font-weight: bold;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -73,41 +35,41 @@ UI_TEXT = {
     "English": {
         "title": "Swara Setu AI",
         "subtitle": "Global Real-Time Voice Translation",
-        "you_speak": "You Speak:",
-        "they_hear": "They Hear:",
-        "swap": "🔄 Swap",
-        "hold_speak": "Audio Input",
+        "you_speak": "🗣️ You Speak:",
+        "they_hear": "🎧 They Hear:",
+        "swap": "🔄 Swap Languages",
+        "hold_speak": "🎙️ Audio Input",
         "tap_record": "Tap to Record",
-        "translate_btn": "Translate Audio",
-        "translating": "Processing...",
+        "translate_btn": "✨ Translate",
+        "translating": "Processing audio...",
         "success": "Translation Successful",
-        "settings": "⚙️ Change App Language"
+        "settings": "⚙️ App Settings"
     },
     "Telugu": {
         "title": "స్వర సేతు AI",
         "subtitle": "గ్లోబల్ రియల్-టైమ్ వాయిస్ అనువాదం",
-        "you_speak": "మీరు మాట్లాడేది:",
-        "they_hear": "వారు వినేది:",
-        "swap": "🔄 మార్చండి",
-        "hold_speak": "ఆడియో రికార్డింగ్",
+        "you_speak": "🗣️ మీరు మాట్లాడేది:",
+        "they_hear": "🎧 వారు వినేది:",
+        "swap": "🔄 భాష మార్చండి",
+        "hold_speak": "🎙️ ఆడియో రికార్డింగ్",
         "tap_record": "రికార్డ్ చేయడానికి నొక్కండి",
-        "translate_btn": "అనువదించండి",
+        "translate_btn": "✨ అనువదించండి",
         "translating": "అనువదిస్తోంది...",
         "success": "అనువాదం పూర్తయింది",
-        "settings": "⚙️ భాష మార్చండి"
+        "settings": "⚙️ యాప్ సెట్టింగ్స్"
     },
     "Hindi": {
         "title": "स्वर सेतु AI",
         "subtitle": "ग्लोबल रियल-टाइम वॉयस ट्रांसलेशन",
-        "you_speak": "आप बोलते हैं:",
-        "they_hear": "वे सुनते हैं:",
-        "swap": "🔄 बदलें",
-        "hold_speak": "ऑडियो इनपुट",
+        "you_speak": "🗣️ आप बोलते हैं:",
+        "they_hear": "🎧 वे सुनते हैं:",
+        "swap": "🔄 भाषा बदलें",
+        "hold_speak": "🎙️ ऑडियो इनपुट",
         "tap_record": "रिकॉर्ड करने के लिए टैप करें",
-        "translate_btn": "अनुवाद करें",
+        "translate_btn": "✨ अनुवाद करें",
         "translating": "अनुवाद हो रहा है...",
         "success": "अनुवाद पूरा हुआ",
-        "settings": "⚙️ भाषा बदलें"
+        "settings": "⚙️ ऐप सेटिंग्स"
     }
 }
 
@@ -144,55 +106,55 @@ def reset_app():
     st.session_state.app_started = False
 
 # ==========================================
-# STEP 1: CLEAN WELCOME SCREEN
+# STEP 1: MOBILE-FRIENDLY WELCOME SCREEN
 # ==========================================
 if not st.session_state.app_started:
-    st.markdown("<br><br><br>", unsafe_allow_html=True)
-    st.markdown("<h1 class='main-title'>Swara Setu AI</h1>", unsafe_allow_html=True)
-    st.markdown("<p class='sub-title'>Select your preferred interface language<br>మీ యాప్ భాషను ఎంచుకోండి</p>", unsafe_allow_html=True)
+    st.write("<br>", unsafe_allow_html=True)
+    st.title("🌐 Swara Setu AI")
+    st.markdown("#### Select interface language")
+    st.caption("మీ యాప్ భాషను ఎంచుకోండి / अपनी भाषा चुनें")
     
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.session_state.ui_lang = st.selectbox("Language / భాష", ["English", "Telugu", "Hindi"], label_visibility="collapsed")
-        st.write("")
-        st.button("Launch App", on_click=start_app, type="primary", use_container_width=True)
+    st.write("")
+    st.session_state.ui_lang = st.selectbox("Language / భాష", ["English", "Telugu", "Hindi"], label_visibility="collapsed")
+    st.write("")
+    st.button("Launch App 🚀", on_click=start_app, type="primary", use_container_width=True)
 
 # ==========================================
-# STEP 2: PROFESSIONAL WORKSPACE
+# STEP 2: PROFESSIONAL MOBILE WORKSPACE
 # ==========================================
 else:
     t = UI_TEXT[st.session_state.ui_lang]
     
+    # Sidebar for reset
     with st.sidebar:
         st.button(t['settings'], on_click=reset_app, use_container_width=True)
 
-    st.markdown(f"<h1 class='main-title'>{t['title']}</h1>", unsafe_allow_html=True)
-    st.markdown(f"<p class='sub-title'>{t['subtitle']}</p>", unsafe_allow_html=True)
+    # Clean Native Headers
+    st.title(f"🌐 {t['title']}")
+    st.caption(t['subtitle'])
+    st.divider()
 
-    # 1. Language Selectors
-    col1, col2, col3 = st.columns([5, 2, 5])
-    with col1:
-        source_language = st.selectbox(f"**{t['you_speak']}**", lang_names, key="src_dropdown")
-    with col2:
-        st.write("") 
-        st.write("")
-        st.button(t["swap"], on_click=swap_languages, use_container_width=True)
-    with col3:
-        target_language = st.selectbox(f"**{t['they_hear']}**", lang_names, key="tgt_dropdown")
+    # Mobile Layout: Stacked Dropdowns with Swap Button in the middle
+    source_language = st.selectbox(t['you_speak'], lang_names, key="src_dropdown")
+    
+    st.button(t["swap"], on_click=swap_languages, use_container_width=True)
+    
+    target_language = st.selectbox(t['they_hear'], lang_names, key="tgt_dropdown")
 
     src_code = LANGUAGES[source_language]
     tgt_code = LANGUAGES[target_language]
 
     st.divider()
 
-    # 2. Audio Input
-    st.markdown(f"<h3 style='text-align: center; color: #1E3A8A;'>{t['hold_speak']}</h3>", unsafe_allow_html=True)
+    # Audio Section
+    st.subheader(t['hold_speak'])
     
-    col_e1, col_mic, col_e2 = st.columns([1, 1, 1])
-    with col_mic:
-        audio_bytes = audio_recorder(text=t["tap_record"], recording_color="#EF4444", neutral_color="#2563EB", icon_size="2x")
+    # Centered Audio Box
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        audio_bytes = audio_recorder(text=t["tap_record"], recording_color="#FF4B4B", neutral_color="#1E88E5", icon_size="2x")
 
-    # 3. Processing & Output
+    # Processing & Output
     if audio_bytes:
         temp_input_path = "temp_input.wav"
         with open(temp_input_path, "wb") as f:
@@ -207,8 +169,11 @@ else:
 
             if original_text and translated_text and result.endswith('.mp3'):
                 st.success(t["success"])
-                st.info(f"**{source_language}:** {original_text}")
-                st.success(f"**{target_language}:** {translated_text}")
+                
+                # Clean Output Boxes
+                st.info(f"**{source_language}:**\n\n{original_text}")
+                st.success(f"**{target_language}:**\n\n{translated_text}")
+                
                 st.audio(result, format="audio/mp3", autoplay=True) 
             else:
                 st.error(f"Error: {result}")
