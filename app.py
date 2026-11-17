@@ -73,11 +73,6 @@ st.markdown("""
         padding: 15px !important;
         box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4) !important;
     }
-    
-    /* Make the text and icons inside the audio box white */
-    div[data-testid="stAudioInput"] * {
-        color: white !important;
-    }
 
     /* Results Boxes */
     div[data-testid="stInfo"], div[data-testid="stSuccess"], div[data-testid="stError"] {
@@ -113,7 +108,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- UI Dictionary ---
+# --- FIXED UI Dictionary (Keys restored) ---
 UI_TEXT = {
     "English": {
         "subtitle": "Global Real-Time Voice Translation",
@@ -121,6 +116,8 @@ UI_TEXT = {
         "they_hear": "🎧 They Hear:",
         "swap": "🔄 Swap",
         "translate_btn": "✨ Translate & Speak",
+        "translating": "Processing audio...",
+        "success": "Translation Successful",
         "settings": "⚙️ Language"
     },
     "Telugu": {
@@ -129,6 +126,8 @@ UI_TEXT = {
         "they_hear": "🎧 వారు వినేది:",
         "swap": "🔄 మార్చండి",
         "translate_btn": "✨ అనువదించి వినిపించండి",
+        "translating": "అనువదిస్తోంది...",
+        "success": "అనువాదం పూర్తయింది",
         "settings": "⚙️ భాష"
     },
     "Hindi": {
@@ -137,6 +136,8 @@ UI_TEXT = {
         "they_hear": "🎧 वे सुनते हैं:",
         "swap": "🔄 बदलें",
         "translate_btn": "✨ अनुवाद करें और बोलें",
+        "translating": "अनुवाद हो रहा है...",
+        "success": "अनुवाद पूरा हुआ",
         "settings": "⚙️ भाषा"
     }
 }
@@ -225,8 +226,8 @@ else:
     # --- FULLY SECURE NATIVE AUDIO RECORDER ---
     st.markdown("<div style='text-align: center; margin-bottom: 10px; font-weight: bold; color: #1E3A8A;'>🎙️ Audio Input Zone</div>", unsafe_allow_html=True)
     
-    # Native Streamlit audio recorder (styled as a red button by the CSS above)
-    audio_value = st.audio_input("Record")
+    # Hide the word "Record" using label_visibility
+    audio_value = st.audio_input("Record", label_visibility="collapsed")
 
     # Process Audio
     if audio_value:
@@ -246,7 +247,7 @@ else:
                 original_text, translated_text, result = process_audio(temp_input_path, src_code, tgt_code)
 
             if original_text and translated_text and result.endswith('.mp3'):
-                st.success("Translation Successful")
+                st.success(t['success'])
                 st.info(f"**Original ({source_language}):**\n\n{original_text}")
                 st.success(f"**Translation ({target_language}):**\n\n{translated_text}")
                 st.write("")
