@@ -1,18 +1,20 @@
 import streamlit as st
 import os
-import base64
+import requests
+from streamlit_lottie import st_lottie
 from swara_engine import process_audio
+from streamlit_mic_recorder import mic_recorder
 
 # --- Page Config ---
 st.set_page_config(page_title="Swara Setu AI", page_icon="🌐", layout="centered")
 
-# --- Custom CSS (No more glass containers!) ---
+# --- Premium Native CSS ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
     
     .stApp {
-        background: linear-gradient(135deg, #f0f4ff 0%, #ffffff 100%);
+        background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
         font-family: 'Inter', sans-serif;
     }
     
@@ -40,7 +42,7 @@ st.markdown("""
         animation: fadeIn 1.2s ease-in;
     }
 
-    /* Standard Button Styling */
+    /* Premium Streamlit Buttons (Applies to Translate & Swap) */
     div.stButton > button {
         background: linear-gradient(90deg, #3b82f6, #2563eb);
         color: white;
@@ -57,12 +59,19 @@ st.markdown("""
         box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
     }
     
-    /* Swap Button Override */
     div.stButton > button:contains("🔄") {
         background: white !important;
         color: #2563eb !important;
         border: 2px solid #eff6ff !important;
         box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    /* Results Box Styling */
+    div[data-testid="stInfo"], div[data-testid="stSuccess"], div[data-testid="stError"] {
+        border-radius: 12px;
+        background: #F8FAFC;
+        border-left: 5px solid #3B82F6;
+        color: #334155;
     }
 
     /* Custom Designer Footer */
@@ -153,104 +162,15 @@ def start_app():
 def reset_app():
     st.session_state.app_started = False
 
-# ==========================================
-# CUSTOM HTML/JS AUDIO RECORDER COMPONENT
-# ==========================================
-def custom_audio_recorder():
-    import streamlit.components.v1 as components
-    
-    # We use a custom HTML button that triggers the browser's MediaRecorder API
-    # The entire width of this button is clickable.
-    html_code = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-    <style>
-        .record-btn {
-            width: 100%;
-            padding: 20px;
-            font-size: 18px;
-            font-weight: bold;
-            color: white;
-            background: linear-gradient(90deg, #ef4444, #dc2626);
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
-            transition: all 0.2s ease;
-        }
-        .record-btn.recording {
-            background: linear-gradient(90deg, #10b981, #059669);
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
-            animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-            100% { transform: scale(1); }
-        }
-    </style>
-    </head>
-    <body>
-        <button id="recordButton" class="record-btn">🎙️ Tap Here to Record</button>
-        <script>
-            const button = document.getElementById('recordButton');
-            let mediaRecorder;
-            let audioChunks = [];
-            let isRecording = false;
+@st.cache_data
+def load_lottieurl(url: str):
+    r = requests.get(url)
+    return r.json() if r.status_code == 200 else None
 
-            button.addEventListener('click', async () => {
-                if (!isRecording) {
-                    // Start Recording
-                    try {
-                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                        mediaRecorder = new MediaRecorder(stream);
-                        
-                        mediaRecorder.ondataavailable = event => {
-                            audioChunks.push(event.data);
-                        };
-                        
-                        mediaRecorder.onstop = () => {
-                            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                            const reader = new FileReader();
-                            reader.readAsDataURL(audioBlob);
-                            reader.onloadend = () => {
-                                const base64data = reader.result;
-                                // Send data back to Streamlit
-                                window.parent.postMessage({
-                                    type: 'streamlit:setComponentValue',
-                                    value: base64data
-                                }, '*');
-                            };
-                            audioChunks = [];
-                        };
-
-                        mediaRecorder.start();
-                        isRecording = true;
-                        button.textContent = "⏹️ Tap to Stop Recording";
-                        button.classList.add("recording");
-                    } catch (err) {
-                        console.error("Error accessing microphone", err);
-                        button.textContent = "Error: Microphone access denied";
-                    }
-                } else {
-                    // Stop Recording
-                    mediaRecorder.stop();
-                    isRecording = false;
-                    button.textContent = "✅ Audio Captured! (Tap to record again)";
-                    button.classList.remove("recording");
-                }
-            });
-        </script>
-    </body>
-    </html>
-    """
-    # Create the component
-    return components.html(html_code, height=90)
-
+lottie_wave = load_lottieurl("https://assets3.lottiefiles.com/packages/lf20_4kji20Y9.json")
 
 # ==========================================
-# STEP 1: WELCOME SCREEN (Cleaned)
+# STEP 1: WELCOME SCREEN
 # ==========================================
 if not st.session_state.app_started:
     st.markdown("<br><br><br>", unsafe_allow_html=True)
@@ -264,7 +184,7 @@ if not st.session_state.app_started:
         st.button("Launch App 🚀", on_click=start_app, type="primary")
 
 # ==========================================
-# STEP 2: PROFESSIONAL WORKSPACE (Cleaned)
+# STEP 2: PROFESSIONAL WORKSPACE
 # ==========================================
 else:
     t = UI_TEXT[st.session_state.ui_lang]
@@ -291,37 +211,43 @@ else:
     
     st.divider()
 
-    # --- CUSTOM AUDIO RECORDER BUTTON ---
-    audio_data_url = custom_audio_recorder()
+    # --- FULLY CLICKABLE MIC RECORDER ---
+    st.markdown("<div style='text-align: center; margin-bottom: 10px; font-weight: bold; color: #1E3A8A;'>🎙️ Audio Input Zone</div>", unsafe_allow_html=True)
+    
+    audio = mic_recorder(
+        start_prompt="Tap Anywhere Here to Record",
+        stop_prompt="⏹️ Tap to Stop Recording",
+        key='mic_recorder'
+    )
 
     # Process Audio if captured
-    if audio_data_url:
-        try:
-            # Decode the base64 audio data returned from the JS component
-            audio_data_str = audio_data_url.split(",")[1]
-            audio_bytes = base64.b64decode(audio_data_str)
+    if audio:
+        audio_bytes = audio['bytes']
+        temp_input_path = "temp_input.wav"
+        
+        with open(temp_input_path, "wb") as f:
+            f.write(audio_bytes)
             
-            temp_input_path = "temp_input.wav"
-            with open(temp_input_path, "wb") as f:
-                f.write(audio_bytes)
+        st.write("")
+        st.audio(temp_input_path, format="audio/wav")
+        st.write("")
+
+        if st.button(t["translate_btn"], type="primary"):
+            
+            if lottie_wave:
+                st_lottie(lottie_wave, height=80, key="translating")
                 
-            st.audio(temp_input_path, format="audio/wav")
-            st.write("")
+            with st.spinner(t['translating']):
+                original_text, translated_text, result = process_audio(temp_input_path, src_code, tgt_code)
 
-            if st.button(t["translate_btn"], type="primary"):
-                with st.spinner("Processing audio..."):
-                    original_text, translated_text, result = process_audio(temp_input_path, src_code, tgt_code)
-
-                if original_text and translated_text and result.endswith('.mp3'):
-                    st.success("Translation Successful")
-                    st.info(f"**Original ({source_language}):**\n\n{original_text}")
-                    st.success(f"**Translation ({target_language}):**\n\n{translated_text}")
-                    st.write("")
-                    st.audio(result, format="audio/mp3", autoplay=True) 
-                else:
-                    st.error(f"Error: {result}")
-        except Exception as e:
-            pass # Ignore component initialization errors
+            if original_text and translated_text and result.endswith('.mp3'):
+                st.success("Translation Successful")
+                st.info(f"**Original ({source_language}):**\n\n{original_text}")
+                st.success(f"**Translation ({target_language}):**\n\n{translated_text}")
+                st.write("")
+                st.audio(result, format="audio/mp3", autoplay=True) 
+            else:
+                st.error(f"Error: {result}")
 
     # Custom Footer
     st.markdown("""
@@ -329,3 +255,4 @@ else:
             <p>Designed by <a href="https://www.linkedin.com/in/dandabattula-manikanta" target="_blank">Manikanta</a></p>
         </div>
     """, unsafe_allow_html=True)
+    
