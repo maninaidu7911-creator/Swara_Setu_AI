@@ -1,0 +1,7 @@
+streamlit
+speechrecognition
+deep-translator
+gTTS
+audio-recorder-streamlit
+streamlit-lottie
+requests
