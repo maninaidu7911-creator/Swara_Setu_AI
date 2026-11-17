@@ -218,6 +218,6 @@ else:
     # ==========================================
     st.markdown("""
         <div class="custom-footer">
-            Designed by <a href="https://www.linkedin.com/in/manikanta-dandabattula" target="_blank">Manikanta</a>
+            Designed by <a href="https://www.linkedin.com/in/dandabattula-manikanta" target="_blank">Manikanta</a>
         </div>
     """, unsafe_allow_html=True)
