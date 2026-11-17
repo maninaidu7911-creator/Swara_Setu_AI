@@ -1,8 +1,6 @@
 import streamlit as st
 import os
 import requests
-import base64
-import streamlit.components.v1 as components
 from streamlit_lottie import st_lottie
 from swara_engine import process_audio
 
@@ -20,7 +18,6 @@ st.markdown("""
     }
     
     #MainMenu, header, footer {visibility: hidden;}
-    iframe {border: none !important;} 
 
     .hero-title {
         font-weight: 800;
@@ -43,7 +40,7 @@ st.markdown("""
         animation: fadeIn 1.2s ease-in;
     }
 
-    /* Translate Button Styling */
+    /* Primary Translate Button */
     button[data-testid="baseButton-primary"] {
         background: linear-gradient(90deg, #3b82f6, #2563eb) !important;
         color: white !important;
@@ -59,7 +56,7 @@ st.markdown("""
         box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4) !important;
     }
     
-    /* Swap & Settings Button Styling */
+    /* Swap Button */
     button[data-testid="baseButton-secondary"] {
         background: white !important;
         color: #2563eb !important;
@@ -67,10 +64,19 @@ st.markdown("""
         border-radius: 12px !important;
         font-weight: 600 !important;
         box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
-        transition: all 0.3s ease !important;
     }
-    button[data-testid="baseButton-secondary"]:hover {
-        border-color: #3b82f6 !important;
+
+    /* --- NATIVE AUDIO INPUT RED STYLING --- */
+    div[data-testid="stAudioInput"] {
+        background: linear-gradient(90deg, #ef4444, #dc2626) !important;
+        border-radius: 12px !important;
+        padding: 15px !important;
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4) !important;
+    }
+    
+    /* Make the text and icons inside the audio box white */
+    div[data-testid="stAudioInput"] * {
+        color: white !important;
     }
 
     /* Results Boxes */
@@ -78,7 +84,7 @@ st.markdown("""
         border-radius: 12px;
         background: #F8FAFC;
         border-left: 5px solid #3B82F6;
-        color: #334155;
+        color: #334155 !important;
     }
 
     .designer-footer {
@@ -106,104 +112,6 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
-
-# --- Built-in HTML for Custom Audio Button ---
-custom_button_html = """
-<!DOCTYPE html>
-<html>
-<head>
-<style>
-    body {
-        margin: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-family: 'Inter', sans-serif;
-    }
-    .record-btn {
-        width: 100%;
-        max-width: 600px;
-        padding: 16px;
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: white;
-        background: linear-gradient(90deg, #ef4444, #dc2626);
-        border: none;
-        border-radius: 12px;
-        cursor: pointer;
-        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-    }
-    .record-btn.recording {
-        background: linear-gradient(90deg, #10b981, #059669);
-        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
-        animation: pulse 1.5s infinite;
-    }
-    @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.02); }
-        100% { transform: scale(1); }
-    }
-</style>
-</head>
-<body>
-    <button id="recordButton" class="record-btn">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
-        Tap Anywhere Here to Record Audio
-    </button>
-
-    <script>
-        const button = document.getElementById('recordButton');
-        let mediaRecorder;
-        let audioChunks = [];
-        let isRecording = false;
-
-        button.addEventListener('click', async () => {
-            if (!isRecording) {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
-                    
-                    mediaRecorder.ondataavailable = event => {
-                        audioChunks.push(event.data);
-                    };
-                    
-                    mediaRecorder.onstop = () => {
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                        const reader = new FileReader();
-                        reader.readAsDataURL(audioBlob);
-                        reader.onloadend = () => {
-                            const base64data = reader.result.split(',')[1];
-                            window.parent.postMessage({
-                                type: 'streamlit:setComponentValue',
-                                value: base64data
-                            }, '*');
-                        };
-                        audioChunks = [];
-                    };
-
-                    mediaRecorder.start();
-                    isRecording = true;
-                    button.innerHTML = "⏹️ Tap to Stop Recording";
-                    button.classList.add("recording");
-                } catch (err) {
-                    button.innerHTML = "Error: Microphone access denied";
-                }
-            } else {
-                mediaRecorder.stop();
-                isRecording = false;
-                button.innerHTML = "✅ Audio Captured! (Tap to record again)";
-                button.classList.remove("recording");
-            }
-        });
-    </script>
-</body>
-</html>
-"""
 
 # --- UI Dictionary ---
 UI_TEXT = {
@@ -314,43 +222,37 @@ else:
     
     st.write("<br>", unsafe_allow_html=True)
 
-    # --- INJECT CUSTOM SOLID RED AUDIO RECORDER BUTTON ---
-    audio_base64 = components.html(custom_button_html, height=85)
+    # --- FULLY SECURE NATIVE AUDIO RECORDER ---
+    st.markdown("<div style='text-align: center; margin-bottom: 10px; font-weight: bold; color: #1E3A8A;'>🎙️ Audio Input Zone</div>", unsafe_allow_html=True)
+    
+    # Native Streamlit audio recorder (styled as a red button by the CSS above)
+    audio_value = st.audio_input("Record")
 
-    # Save audio to session state memory
-    if audio_base64:
-        st.session_state['recorded_audio'] = audio_base64
-
-    # Process Audio if it exists in memory
-    if 'recorded_audio' in st.session_state and st.session_state['recorded_audio']:
-        try:
-            audio_bytes = base64.b64decode(st.session_state['recorded_audio'])
-            temp_input_path = "temp_input.wav"
+    # Process Audio
+    if audio_value:
+        temp_input_path = "temp_input.wav"
+        
+        with open(temp_input_path, "wb") as f:
+            f.write(audio_value.read())
             
-            with open(temp_input_path, "wb") as f:
-                f.write(audio_bytes)
-                
-            st.audio(temp_input_path, format="audio/wav")
-            st.write("")
+        st.write("")
 
-            if st.button(t["translate_btn"], type="primary", use_container_width=True):
+        if st.button(t["translate_btn"], type="primary", use_container_width=True):
+            
+            if lottie_wave:
+                st_lottie(lottie_wave, height=80, key="translating")
                 
-                if lottie_wave:
-                    st_lottie(lottie_wave, height=80, key="translating")
-                    
-                with st.spinner(t['translating']):
-                    original_text, translated_text, result = process_audio(temp_input_path, src_code, tgt_code)
+            with st.spinner(t['translating']):
+                original_text, translated_text, result = process_audio(temp_input_path, src_code, tgt_code)
 
-                if original_text and translated_text and result.endswith('.mp3'):
-                    st.success("Translation Successful")
-                    st.info(f"**Original ({source_language}):**\n\n{original_text}")
-                    st.success(f"**Translation ({target_language}):**\n\n{translated_text}")
-                    st.write("")
-                    st.audio(result, format="audio/mp3", autoplay=True) 
-                else:
-                    st.error(f"Error: {result}")
-        except Exception as e:
-            pass 
+            if original_text and translated_text and result.endswith('.mp3'):
+                st.success("Translation Successful")
+                st.info(f"**Original ({source_language}):**\n\n{original_text}")
+                st.success(f"**Translation ({target_language}):**\n\n{translated_text}")
+                st.write("")
+                st.audio(result, format="audio/mp3", autoplay=True) 
+            else:
+                st.error(f"Error: {result}")
 
     # Custom Footer
     st.markdown("""
