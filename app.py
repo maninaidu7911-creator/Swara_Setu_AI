@@ -107,6 +107,104 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# --- Built-in HTML for Custom Audio Button ---
+custom_button_html = """
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+    body {
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: 'Inter', sans-serif;
+    }
+    .record-btn {
+        width: 100%;
+        max-width: 600px;
+        padding: 16px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: white;
+        background: linear-gradient(90deg, #ef4444, #dc2626);
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+    .record-btn.recording {
+        background: linear-gradient(90deg, #10b981, #059669);
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.02); }
+        100% { transform: scale(1); }
+    }
+</style>
+</head>
+<body>
+    <button id="recordButton" class="record-btn">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+        Tap Anywhere Here to Record Audio
+    </button>
+
+    <script>
+        const button = document.getElementById('recordButton');
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+
+        button.addEventListener('click', async () => {
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    
+                    mediaRecorder.ondataavailable = event => {
+                        audioChunks.push(event.data);
+                    };
+                    
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        const reader = new FileReader();
+                        reader.readAsDataURL(audioBlob);
+                        reader.onloadend = () => {
+                            const base64data = reader.result.split(',')[1];
+                            window.parent.postMessage({
+                                type: 'streamlit:setComponentValue',
+                                value: base64data
+                            }, '*');
+                        };
+                        audioChunks = [];
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    button.innerHTML = "⏹️ Tap to Stop Recording";
+                    button.classList.add("recording");
+                } catch (err) {
+                    button.innerHTML = "Error: Microphone access denied";
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                button.innerHTML = "✅ Audio Captured! (Tap to record again)";
+                button.classList.remove("recording");
+            }
+        });
+    </script>
+</body>
+</html>
+"""
+
 # --- UI Dictionary ---
 UI_TEXT = {
     "English": {
@@ -216,11 +314,8 @@ else:
     
     st.write("<br>", unsafe_allow_html=True)
 
-    # --- CUSTOM SOLID RED AUDIO RECORDER BUTTON ---
-    with open("components.html", "r") as f:
-        html_string = f.read()
-    
-    audio_base64 = components.html(html_string, height=85)
+    # --- INJECT CUSTOM SOLID RED AUDIO RECORDER BUTTON ---
+    audio_base64 = components.html(custom_button_html, height=85)
 
     # Save audio to session state memory
     if audio_base64:
