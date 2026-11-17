@@ -1,7 +1,8 @@
 import speech_recognition as sr
-from deep_translator import GoogleTranslator
+from deep_translator import MyMemoryTranslator
 from gtts import gTTS
 import os
+import time
 
 def process_audio(audio_file_path, src_lang, tgt_lang):
     recognizer = sr.Recognizer()
@@ -18,17 +19,18 @@ def process_audio(audio_file_path, src_lang, tgt_lang):
             
         original_text = recognizer.recognize_google(audio_data, language=speech_lang)
 
-        # 2. Smart Bridge Translation using deep-translator
-        # If neither the source nor target is English, route it through English first to preserve names and grammar.
+        # 2. Smart Bridge Translation using MyMemory (Bypasses Google's server blocks completely)
         if src_lang != 'en' and tgt_lang != 'en':
             # Step A: Translate regional language to English
-            english_bridge = GoogleTranslator(source=src_lang, target='en').translate(original_text)
+            english_bridge = MyMemoryTranslator(source=src_lang, target='en').translate(original_text)
             
-            # Step B: Translate the perfect English sentence into the final target language
-            translated_text = GoogleTranslator(source='en', target=tgt_lang).translate(english_bridge)
+            time.sleep(0.5) # Short pause for safety
+            
+            # Step B: Translate the English sentence into the final target language
+            translated_text = MyMemoryTranslator(source='en', target=tgt_lang).translate(english_bridge)
         else:
             # Standard direct translation if English is already involved
-            translated_text = GoogleTranslator(source=src_lang, target=tgt_lang).translate(original_text)
+            translated_text = MyMemoryTranslator(source=src_lang, target=tgt_lang).translate(original_text)
 
         # 3. Generate Audio Output
         tts_lang = tgt_lang
