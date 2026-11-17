@@ -2,30 +2,149 @@ import streamlit as st
 from audio_recorder_streamlit import audio_recorder
 import os
 import requests
+from streamlit_lottie import st_lottie
 from swara_engine import process_audio
 
 # --- Page Config ---
 st.set_page_config(page_title="Swara Setu AI", page_icon="🌐", layout="centered")
 
-# --- Minimalist CSS (Only for hiding watermarks and footer) ---
+# --- Premium Animated CSS ---
 st.markdown("""
     <style>
-    #MainMenu {visibility: hidden;}
-    header {visibility: hidden;}
-    footer {visibility: hidden;}
+    /* Global Font & Background */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
     
-    .custom-footer {
-        text-align: center;
-        margin-top: 50px;
-        padding-top: 20px;
-        border-top: 1px solid rgba(128, 128, 128, 0.2);
-        font-size: 0.9rem;
-        color: gray;
+    .stApp {
+        background: linear-gradient(135deg, #f0f4ff 0%, #ffffff 100%);
+        font-family: 'Inter', sans-serif;
     }
-    .custom-footer a {
-        color: #2563EB;
+    
+    #MainMenu, header, footer {visibility: hidden;}
+
+    /* Animated Gradient Title */
+    .hero-title {
+        font-weight: 800;
+        font-size: 3.2rem;
+        text-align: center;
+        background: linear-gradient(90deg, #2563EB, #9333EA);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: fadeInDown 0.8s ease-out;
+        margin-bottom: 0px;
+    }
+    
+    .hero-subtitle {
+        text-align: center;
+        color: #475569;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-top: 5px;
+        margin-bottom: 35px;
+        animation: fadeIn 1.2s ease-in;
+    }
+
+    /* Floating Glassmorphism Cards */
+    .glass-container {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        margin-bottom: 25px;
+        animation: slideUp 0.6s ease-out forwards;
+    }
+
+    /* Animated Pulse Box for Audio Recorder */
+    .pulse-box {
+        background: #ffffff;
+        border: 2px dashed #9333ea;
+        border-radius: 20px;
+        padding: 30px;
+        text-align: center;
+        box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.4);
+        animation: pulse 2s infinite;
+        transition: all 0.3s ease;
+    }
+    .pulse-box:hover {
+        border-color: #2563eb;
+        background: #f8fafc;
+        transform: scale(1.02);
+    }
+
+    /* Smooth Premium Buttons */
+    div.stButton > button {
+        background: linear-gradient(90deg, #3b82f6, #2563eb);
+        color: white;
+        border-radius: 12px;
+        font-weight: 600;
+        padding: 10px 24px;
+        border: none;
+        box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
+        transition: all 0.3s ease;
+    }
+    div.stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+    }
+    
+    /* Swap Button Override */
+    div.stButton > button:contains("🔄") {
+        background: white !important;
+        color: #2563eb !important;
+        border: 2px solid #eff6ff !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    /* Output Results Styling */
+    .result-box {
+        background: #F8FAFC;
+        border-left: 5px solid #3B82F6;
+        padding: 20px;
+        border-radius: 12px;
+        margin-top: 15px;
+        color: #334155;
+    }
+
+    /* Designer Footer */
+    .designer-footer {
+        text-align: center;
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid #e2e8f0;
+    }
+    .designer-footer p {
+        color: #64748B;
+        font-size: 0.95rem;
+    }
+    .designer-footer a {
+        color: #9333EA;
+        font-weight: 800;
         text-decoration: none;
-        font-weight: bold;
+        transition: color 0.2s;
+    }
+    .designer-footer a:hover {
+        color: #2563EB;
+    }
+
+    /* Animations */
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.4); }
+        70% { box-shadow: 0 0 0 15px rgba(147, 51, 234, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(147, 51, 234, 0); }
+    }
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeInDown {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
     }
     </style>
 """, unsafe_allow_html=True)
@@ -33,43 +152,40 @@ st.markdown("""
 # --- UI Dictionary ---
 UI_TEXT = {
     "English": {
-        "title": "Swara Setu AI",
         "subtitle": "Global Real-Time Voice Translation",
         "you_speak": "🗣️ You Speak:",
         "they_hear": "🎧 They Hear:",
-        "swap": "🔄 Swap Languages",
-        "hold_speak": "🎙️ Audio Input",
+        "swap": "🔄 Swap",
+        "hold_speak": "🎙️ Audio Input Zone",
         "tap_record": "Tap to Record",
-        "translate_btn": "✨ Translate",
+        "translate_btn": "✨ Translate & Speak",
         "translating": "Processing audio...",
         "success": "Translation Successful",
-        "settings": "⚙️ App Settings"
+        "settings": "⚙️ Language"
     },
     "Telugu": {
-        "title": "స్వర సేతు AI",
         "subtitle": "గ్లోబల్ రియల్-టైమ్ వాయిస్ అనువాదం",
         "you_speak": "🗣️ మీరు మాట్లాడేది:",
         "they_hear": "🎧 వారు వినేది:",
-        "swap": "🔄 భాష మార్చండి",
+        "swap": "🔄 మార్చండి",
         "hold_speak": "🎙️ ఆడియో రికార్డింగ్",
         "tap_record": "రికార్డ్ చేయడానికి నొక్కండి",
-        "translate_btn": "✨ అనువదించండి",
+        "translate_btn": "✨ అనువదించి వినిపించండి",
         "translating": "అనువదిస్తోంది...",
         "success": "అనువాదం పూర్తయింది",
-        "settings": "⚙️ యాప్ సెట్టింగ్స్"
+        "settings": "⚙️ భాష"
     },
     "Hindi": {
-        "title": "स्वर सेतु AI",
         "subtitle": "ग्लोबल रियल-टाइम वॉयस ट्रांसलेशन",
         "you_speak": "🗣️ आप बोलते हैं:",
         "they_hear": "🎧 वे सुनते हैं:",
-        "swap": "🔄 भाषा बदलें",
-        "hold_speak": "🎙️ ऑडियो इनपुट",
+        "swap": "🔄 बदलें",
+        "hold_speak": "🎙️ ऑडियो इनपुट ज़ोन",
         "tap_record": "रिकॉर्ड करने के लिए टैप करें",
-        "translate_btn": "✨ अनुवाद करें",
+        "translate_btn": "✨ अनुवाद करें और बोलें",
         "translating": "अनुवाद हो रहा है...",
         "success": "अनुवाद पूरा हुआ",
-        "settings": "⚙️ ऐप सेटिंग्स"
+        "settings": "⚙️ भाषा"
     }
 }
 
@@ -105,56 +221,70 @@ def start_app():
 def reset_app():
     st.session_state.app_started = False
 
-# ==========================================
-# STEP 1: MOBILE-FRIENDLY WELCOME SCREEN
-# ==========================================
-if not st.session_state.app_started:
-    st.write("<br>", unsafe_allow_html=True)
-    st.title("🌐 Swara Setu AI")
-    st.markdown("#### Select interface language")
-    st.caption("మీ యాప్ భాషను ఎంచుకోండి / अपनी भाषा चुनें")
-    
-    st.write("")
-    st.session_state.ui_lang = st.selectbox("Language / భాష", ["English", "Telugu", "Hindi"], label_visibility="collapsed")
-    st.write("")
-    st.button("Launch App 🚀", on_click=start_app, type="primary", use_container_width=True)
+# Helper for Lottie
+@st.cache_data
+def load_lottieurl(url: str):
+    r = requests.get(url)
+    return r.json() if r.status_code == 200 else None
+
+lottie_wave = load_lottieurl("https://assets3.lottiefiles.com/packages/lf20_4kji20Y9.json")
 
 # ==========================================
-# STEP 2: PROFESSIONAL MOBILE WORKSPACE
+# STEP 1: WELCOME SCREEN
+# ==========================================
+if not st.session_state.app_started:
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
+    st.markdown("<h1 class='hero-title'>Swara Setu AI</h1>", unsafe_allow_html=True)
+    st.markdown("<p class='hero-subtitle'>Select your preferred interface language<br>మీ యాప్ భాషను ఎంచుకోండి</p>", unsafe_allow_html=True)
+    
+    st.markdown('<div class="glass-container">', unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.session_state.ui_lang = st.selectbox("Language / భాష", ["English", "Telugu", "Hindi"], label_visibility="collapsed")
+        st.write("")
+        st.button("Launch App 🚀", on_click=start_app, type="primary", use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# ==========================================
+# STEP 2: PROFESSIONAL WORKSPACE
 # ==========================================
 else:
     t = UI_TEXT[st.session_state.ui_lang]
     
-    # Sidebar for reset
     with st.sidebar:
-        st.button(t['settings'], on_click=reset_app, use_container_width=True)
+        st.button(f"{t['settings']}", on_click=reset_app, use_container_width=True)
 
-    # Clean Native Headers
-    st.title(f"🌐 {t['title']}")
-    st.caption(t['subtitle'])
-    st.divider()
+    # Header
+    st.markdown("<h1 class='hero-title'>Swara Setu AI</h1>", unsafe_allow_html=True)
+    st.markdown(f"<p class='hero-subtitle'>{t['subtitle']}</p>", unsafe_allow_html=True)
 
-    # Mobile Layout: Stacked Dropdowns with Swap Button in the middle
-    source_language = st.selectbox(t['you_speak'], lang_names, key="src_dropdown")
-    
-    st.button(t["swap"], on_click=swap_languages, use_container_width=True)
-    
-    target_language = st.selectbox(t['they_hear'], lang_names, key="tgt_dropdown")
+    # Core Panel 1: Language Routing
+    st.markdown('<div class="glass-container">', unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([5, 2, 5])
+    with col1:
+        source_language = st.selectbox(f"**{t['you_speak']}**", lang_names, key="src_dropdown")
+    with col2:
+        st.write("") 
+        st.write("")
+        st.button(t["swap"], on_click=swap_languages, use_container_width=True)
+    with col3:
+        target_language = st.selectbox(f"**{t['they_hear']}**", lang_names, key="tgt_dropdown")
+    st.markdown('</div>', unsafe_allow_html=True)
 
     src_code = LANGUAGES[source_language]
     tgt_code = LANGUAGES[target_language]
 
-    st.divider()
-
-    # Audio Section
-    st.subheader(t['hold_speak'])
+    # Core Panel 2: Animated Audio Engine
+    st.markdown('<div class="glass-container">', unsafe_allow_html=True)
+    st.markdown(f"<h3 style='text-align: center; color: #1E3A8A; margin-bottom: 20px;'>{t['hold_speak']}</h3>", unsafe_allow_html=True)
     
-    # Centered Audio Box
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        audio_bytes = audio_recorder(text=t["tap_record"], recording_color="#FF4B4B", neutral_color="#1E88E5", icon_size="2x")
+    # Pulse Box Wrapper for Audio Recorder
+    st.markdown('<div class="pulse-box">', unsafe_allow_html=True)
+    col_empty1, col_mic, col_empty2 = st.columns([1, 1, 1])
+    with col_mic:
+        audio_bytes = audio_recorder(text=t["tap_record"], recording_color="#EF4444", neutral_color="#9333EA", icon_size="2.5x")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    # Processing & Output
     if audio_bytes:
         temp_input_path = "temp_input.wav"
         with open(temp_input_path, "wb") as f:
@@ -164,25 +294,37 @@ else:
         st.write("")
 
         if st.button(t["translate_btn"], use_container_width=True, type="primary"):
+            
+            if lottie_wave:
+                st_lottie(lottie_wave, height=80, key="translating")
+                
             with st.spinner(t['translating']):
                 original_text, translated_text, result = process_audio(temp_input_path, src_code, tgt_code)
 
             if original_text and translated_text and result.endswith('.mp3'):
                 st.success(t["success"])
                 
-                # Clean Output Boxes
-                st.info(f"**{source_language}:**\n\n{original_text}")
-                st.success(f"**{target_language}:**\n\n{translated_text}")
+                # Premium Output Boxes
+                st.markdown(f"""
+                <div class="result-box">
+                    <p style="font-size: 0.9rem; color: #64748B; margin-bottom: 5px; font-weight: 600;">Original ({source_language}):</p>
+                    <p style="font-size: 1.1rem; margin: 0; color: #1E3A8A;">"{original_text}"</p>
+                </div>
+                <div class="result-box" style="border-left-color: #10B981; background: #ECFDF5;">
+                    <p style="font-size: 0.9rem; color: #047857; margin-bottom: 5px; font-weight: 600;">Translation ({target_language}):</p>
+                    <p style="font-size: 1.2rem; margin: 0; color: #065F46;">"{translated_text}"</p>
+                </div>
+                """, unsafe_allow_html=True)
                 
+                st.write("")
                 st.audio(result, format="audio/mp3", autoplay=True) 
             else:
                 st.error(f"Error: {result}")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    # ==========================================
-    # STEP 3: CUSTOM FOOTER
-    # ==========================================
+    # Footer
     st.markdown("""
-        <div class="custom-footer">
-            Designed by <a href="https://www.linkedin.com/in/dandabattula-manikanta" target="_blank">Manikanta</a>
+        <div class="designer-footer">
+            <p>Designed by <a href="https://www.linkedin.com/in/dandabattula-manikanta" target="_blank">Manikanta</a></p>
         </div>
     """, unsafe_allow_html=True)
