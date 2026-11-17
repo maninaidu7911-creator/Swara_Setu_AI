@@ -1,6 +1,5 @@
 streamlit
 streamlit-lottie
-streamlit-mic-recorder
 SpeechRecognition
 gTTS
 googletrans==4.0.0-rc1
