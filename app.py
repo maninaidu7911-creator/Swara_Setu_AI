@@ -1,5 +1,4 @@
 import streamlit as st
-from audio_recorder_streamlit import audio_recorder
 import os
 import requests
 from streamlit_lottie import st_lottie
@@ -8,7 +7,7 @@ from swara_engine import process_audio
 # --- Page Config ---
 st.set_page_config(page_title="Swara Setu AI", page_icon="🌐", layout="centered")
 
-# --- Native Streamlit Styling & Component Animation ---
+# --- Premium Native CSS ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
@@ -42,24 +41,17 @@ st.markdown("""
         animation: fadeIn 1.2s ease-in;
     }
 
-    /* Target the exact Streamlit block containing the Audio Recorder */
-    /* This forces the pulse animation directly onto the Streamlit component area */
-    [data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] > [data-testid="stVerticalBlock"] {
-        background: #ffffff;
-        border: 2px dashed #9333ea;
+    /* Floating Glassmorphism Cards */
+    .glass-container {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
         border-radius: 20px;
-        padding: 20px;
-        box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.4);
-        animation: pulse 2s infinite;
-        transition: all 0.3s ease;
-        text-align: center;
-        margin-bottom: 20px;
-    }
-    
-    [data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] > [data-testid="stVerticalBlock"]:hover {
-        border-color: #2563eb;
-        background: #f8fafc;
-        transform: scale(1.02);
+        padding: 25px;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        margin-bottom: 25px;
+        animation: slideUp 0.6s ease-out forwards;
     }
 
     /* Premium Buttons */
@@ -116,11 +108,10 @@ st.markdown("""
         text-decoration: underline;
     }
 
-    /* Pulse Animation */
-    @keyframes pulse {
-        0% { box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.4); }
-        70% { box-shadow: 0 0 0 15px rgba(147, 51, 234, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(147, 51, 234, 0); }
+    /* Animations */
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
     }
     @keyframes fadeInDown {
         from { opacity: 0; transform: translateY(-20px); }
@@ -140,8 +131,7 @@ UI_TEXT = {
         "you_speak": "🗣️ You Speak:",
         "they_hear": "🎧 They Hear:",
         "swap": "🔄 Swap",
-        "hold_speak": "🎙️ Audio Input Zone",
-        "tap_record": "Tap to Record",
+        "hold_speak": "🎙️ Tap to Record Audio",
         "translate_btn": "✨ Translate & Speak",
         "translating": "Processing audio...",
         "success": "Translation Successful",
@@ -152,8 +142,7 @@ UI_TEXT = {
         "you_speak": "🗣️ మీరు మాట్లాడేది:",
         "they_hear": "🎧 వారు వినేది:",
         "swap": "🔄 మార్చండి",
-        "hold_speak": "🎙️ ఆడియో రికార్డింగ్",
-        "tap_record": "రికార్డ్ చేయడానికి నొక్కండి",
+        "hold_speak": "🎙️ ఆడియో రికార్డ్ చేయడానికి నొక్కండి",
         "translate_btn": "✨ అనువదించి వినిపించండి",
         "translating": "అనువదిస్తోంది...",
         "success": "అనువాదం పూర్తయింది",
@@ -164,8 +153,7 @@ UI_TEXT = {
         "you_speak": "🗣️ आप बोलते हैं:",
         "they_hear": "🎧 वे सुनते हैं:",
         "swap": "🔄 बदलें",
-        "hold_speak": "🎙️ ऑडियो इनपुट ज़ोन",
-        "tap_record": "रिकॉर्ड करने के लिए टैप करें",
+        "hold_speak": "🎙️ ऑडियो रिकॉर्ड करने के लिए टैप करें",
         "translate_btn": "✨ अनुवाद करें और बोलें",
         "translating": "अनुवाद हो रहा है...",
         "success": "अनुवाद पूरा हुआ",
@@ -213,21 +201,23 @@ def load_lottieurl(url: str):
 lottie_wave = load_lottieurl("https://assets3.lottiefiles.com/packages/lf20_4kji20Y9.json")
 
 # ==========================================
-# STEP 1: WELCOME SCREEN (Cleaned)
+# STEP 1: WELCOME SCREEN
 # ==========================================
 if not st.session_state.app_started:
     st.markdown("<br><br><br>", unsafe_allow_html=True)
     st.markdown("<h1 class='hero-title'>Swara Setu AI</h1>", unsafe_allow_html=True)
     st.markdown("<p class='hero-subtitle'>Select your preferred interface language<br>మీ యాప్ భాషను ఎంచుకోండి</p>", unsafe_allow_html=True)
     
+    st.markdown('<div class="glass-container">', unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.session_state.ui_lang = st.selectbox("Language / భాష", ["English", "Telugu", "Hindi"], label_visibility="collapsed")
         st.write("")
-        st.button("Launch App 🚀", on_click=start_app, type="primary")
+        st.button("Launch App 🚀", on_click=start_app, type="primary", use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# STEP 2: PROFESSIONAL WORKSPACE (Cleaned)
+# STEP 2: PROFESSIONAL WORKSPACE
 # ==========================================
 else:
     t = UI_TEXT[st.session_state.ui_lang]
@@ -239,6 +229,7 @@ else:
     st.markdown(f"<p class='hero-subtitle'>{t['subtitle']}</p>", unsafe_allow_html=True)
 
     # Core Panel 1: Language Routing
+    st.markdown('<div class="glass-container">', unsafe_allow_html=True)
     col1, col2, col3 = st.columns([5, 2, 5])
     with col1:
         source_language = st.selectbox(f"**{t['you_speak']}**", lang_names, key="src_dropdown")
@@ -248,26 +239,23 @@ else:
         st.button(t["swap"], on_click=swap_languages)
     with col3:
         target_language = st.selectbox(f"**{t['they_hear']}**", lang_names, key="tgt_dropdown")
+    st.markdown('</div>', unsafe_allow_html=True)
 
     src_code = LANGUAGES[source_language]
     tgt_code = LANGUAGES[target_language]
-    
-    st.divider()
 
-    # Core Panel 2: Audio Engine with Direct CSS Pulse
-    st.markdown(f"<h3 style='text-align: center; color: #1E3A8A; margin-bottom: 10px;'>{t['hold_speak']}</h3>", unsafe_allow_html=True)
+    # Core Panel 2: Native Big Audio Button
+    st.markdown('<div class="glass-container">', unsafe_allow_html=True)
     
-    col_empty1, col_mic, col_empty2 = st.columns([1, 1, 1])
-    with col_mic:
-        # The CSS targets this specific block and applies the animation directly to it
-        audio_bytes = audio_recorder(text=t["tap_record"], recording_color="#EF4444", neutral_color="#9333EA", icon_size="2.5x")
+    # Streamlit's new native audio input creates a massive, fully clickable UI exactly like your sketch
+    audio_value = st.audio_input(t['hold_speak'])
 
-    if audio_bytes:
+    if audio_value:
+        audio_bytes = audio_value.read()
         temp_input_path = "temp_input.wav"
         with open(temp_input_path, "wb") as f:
             f.write(audio_bytes)
             
-        st.audio(audio_bytes, format="audio/wav")
         st.write("")
 
         if st.button(t["translate_btn"], type="primary"):
@@ -289,6 +277,7 @@ else:
                 st.audio(result, format="audio/mp3", autoplay=True) 
             else:
                 st.error(f"Error: {result}")
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # Custom Footer
     st.markdown("""
@@ -296,3 +285,5 @@ else:
             <p>Designed by <a href="https://www.linkedin.com/in/dandabattula-manikanta" target="_blank">Manikanta</a></p>
         </div>
     """, unsafe_allow_html=True)
+
+
