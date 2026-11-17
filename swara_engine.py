@@ -1,5 +1,5 @@
 import speech_recognition as sr
-from deep_translator import LibreTranslator
+from translate import Translator
 from gtts import gTTS
 import os
 
@@ -18,9 +18,12 @@ def process_audio(audio_file_path, src_lang, tgt_lang):
             
         original_text = recognizer.recognize_google(audio_data, language=speech_lang)
 
-        # 2. Translate using LibreTranslate (Bypasses Google entirely)
-        # Note: LibreTranslate uses standard 2-letter codes like 'te', 'hi', 'en'
-        translator = LibreTranslator(source=src_lang, target=tgt_lang)
+        # 2. Direct translation using the 'translate' library (No API keys or rate limits)
+        # Handle Chinese language code format for the translator
+        from_lang = src_lang.split('-')[0] if src_lang else 'en'
+        to_lang = tgt_lang.split('-')[0] if tgt_lang else 'en'
+
+        translator = Translator(from_lang=from_lang, to_lang=to_lang)
         translated_text = translator.translate(original_text)
 
         if not translated_text:
