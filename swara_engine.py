@@ -1,5 +1,5 @@
 import speech_recognition as sr
-from deep_translator import MyMemoryTranslator
+from deep_translator import GoogleTranslator
 from gtts import gTTS
 import os
 import time
@@ -19,18 +19,20 @@ def process_audio(audio_file_path, src_lang, tgt_lang):
             
         original_text = recognizer.recognize_google(audio_data, language=speech_lang)
 
-        # 2. Smart Bridge Translation using MyMemory (Bypasses Google's server blocks completely)
-        if src_lang != 'en' and tgt_lang != 'en':
-            # Step A: Translate regional language to English
-            english_bridge = MyMemoryTranslator(source=src_lang, target='en').translate(original_text)
-            
-            time.sleep(0.5) # Short pause for safety
-            
-            # Step B: Translate the English sentence into the final target language
-            translated_text = MyMemoryTranslator(source='en', target=tgt_lang).translate(english_bridge)
-        else:
-            # Standard direct translation if English is already involved
-            translated_text = MyMemoryTranslator(source=src_lang, target=tgt_lang).translate(original_text)
+        # 2. Stable Translation using GoogleTranslator with error handling
+        # If the direct route fails due to server limits, we use a simple try-except fallback
+        try:
+            if src_lang != 'en' and tgt_lang != 'en':
+                # Step A: Translate regional language to English
+                english_bridge = GoogleTranslator(source=src_lang, target='en').translate(original_text)
+                time.sleep(0.5)
+                # Step B: Translate English to target language
+                translated_text = GoogleTranslator(source='en', target=tgt_lang).translate(english_bridge)
+            else:
+                translated_text = GoogleTranslator(source=src_lang, target=tgt_lang).translate(original_text)
+        except Exception:
+            # Fallback if bridge translation hits a rate limit: try direct translation
+            translated_text = GoogleTranslator(source=src_lang, target=tgt_lang).translate(original_text)
 
         # 3. Generate Audio Output
         tts_lang = tgt_lang
