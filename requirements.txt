@@ -1,7 +1,6 @@
 streamlit
-speechrecognition
-deep-translator
-gTTS
-audio-recorder-streamlit
 streamlit-lottie
-requests
+streamlit-mic-recorder
+SpeechRecognition
+gTTS
+googletrans==4.0.0-rc1
