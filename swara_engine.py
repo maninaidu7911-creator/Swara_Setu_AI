@@ -1,11 +1,10 @@
 import speech_recognition as sr
-from googletrans import Translator
+from deep_translator import GoogleTranslator
 from gtts import gTTS
 import os
 
 def process_audio(audio_file_path, src_lang, tgt_lang):
     recognizer = sr.Recognizer()
-    translator = Translator()
 
     try:
         # 1. Recognize spoken audio
@@ -19,17 +18,17 @@ def process_audio(audio_file_path, src_lang, tgt_lang):
             
         original_text = recognizer.recognize_google(audio_data, language=speech_lang)
 
-        # 2. Smart Bridge Translation 
+        # 2. Smart Bridge Translation using deep-translator
         # If neither the source nor target is English, route it through English first to preserve names and grammar.
         if src_lang != 'en' and tgt_lang != 'en':
-            # Step A: Translate regional language to English (Locks in "Manikanta")
-            english_bridge = translator.translate(original_text, src=src_lang, dest='en').text
+            # Step A: Translate regional language to English
+            english_bridge = GoogleTranslator(source=src_lang, target='en').translate(original_text)
             
             # Step B: Translate the perfect English sentence into the final target language
-            translated_text = translator.translate(english_bridge, src='en', dest=tgt_lang).text
+            translated_text = GoogleTranslator(source='en', target=tgt_lang).translate(english_bridge)
         else:
             # Standard direct translation if English is already involved
-            translated_text = translator.translate(original_text, src=src_lang, dest=tgt_lang).text
+            translated_text = GoogleTranslator(source=src_lang, target=tgt_lang).translate(original_text)
 
         # 3. Generate Audio Output
         tts_lang = tgt_lang
