@@ -20,6 +20,7 @@ st.markdown("""
     }
     
     #MainMenu, header, footer {visibility: hidden;}
+    iframe {border: none !important;} /* Removes hidden iframe lines */
 
     .hero-title {
         font-weight: 800;
@@ -38,7 +39,7 @@ st.markdown("""
         font-size: 1.1rem;
         font-weight: 600;
         margin-top: 5px;
-        margin-bottom: 35px;
+        margin-bottom: 45px;
         animation: fadeIn 1.2s ease-in;
     }
 
@@ -74,9 +75,8 @@ st.markdown("""
 
     .designer-footer {
         text-align: center;
-        margin-top: 50px;
+        margin-top: 60px;
         padding-top: 20px;
-        border-top: 1px solid rgba(128,128,128, 0.2);
     }
     .designer-footer p {
         color: #64748B;
@@ -206,30 +206,31 @@ else:
     src_code = LANGUAGES[source_language]
     tgt_code = LANGUAGES[target_language]
     
-    st.divider()
+    st.write("<br>", unsafe_allow_html=True)
 
     # --- CUSTOM FULL-WIDTH AUDIO RECORDER BUTTON ---
-    st.markdown("<div style='text-align: center; margin-bottom: 15px; font-weight: bold; color: #1E3A8A;'>🎙️ Audio Input Zone</div>", unsafe_allow_html=True)
-    
     with open("components.html", "r") as f:
         html_string = f.read()
     
-    audio_base64 = components.html(html_string, height=100)
+    audio_base64 = components.html(html_string, height=85)
 
-    # Process Audio if captured
+    # Save audio to session state so it doesn't disappear when "Translate" is clicked
     if audio_base64:
+        st.session_state['recorded_audio'] = audio_base64
+
+    # Process Audio if it exists in memory
+    if 'recorded_audio' in st.session_state and st.session_state['recorded_audio']:
         try:
-            audio_bytes = base64.b64decode(audio_base64)
+            audio_bytes = base64.b64decode(st.session_state['recorded_audio'])
             temp_input_path = "temp_input.wav"
             
             with open(temp_input_path, "wb") as f:
                 f.write(audio_bytes)
                 
-            st.write("")
             st.audio(temp_input_path, format="audio/wav")
             st.write("")
 
-            if st.button(t["translate_btn"], type="primary"):
+            if st.button(t["translate_btn"], type="primary", use_container_width=True):
                 
                 if lottie_wave:
                     st_lottie(lottie_wave, height=80, key="translating")
@@ -245,8 +246,8 @@ else:
                     st.audio(result, format="audio/mp3", autoplay=True) 
                 else:
                     st.error(f"Error: {result}")
-        except BaseException as e:
-            pass # Handle initial empty state
+        except Exception as e:
+            pass 
 
     # Custom Footer
     st.markdown("""
