@@ -5,89 +5,82 @@ import requests
 from streamlit_lottie import st_lottie
 from swara_engine import process_audio
 
+# --- Page Config ---
 st.set_page_config(page_title="Swara Setu AI", page_icon="🌐", layout="centered")
 
-# --- 1. Advanced Premium CSS (Glassmorphism & Animations) ---
+# --- Minimalist Professional CSS ---
 st.markdown("""
     <style>
-    /* Modern Gradient Background */
+    /* Clean, modern background */
     .stApp {
-        background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
-        font-family: 'Segoe UI', Roboto, sans-serif;
+        background-color: #f8fafc;
+        font-family: 'Inter', 'Segoe UI', sans-serif;
     }
     
-    /* Glassmorphism Card Effect */
-    .glass-card {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border-radius: 20px;
-        padding: 30px;
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        animation: slideUp 0.8s ease-out forwards;
-        margin-bottom: 20px;
-        text-align: center;
-    }
-    
-    /* Smooth Slide-Up Animation */
-    @keyframes slideUp {
-        from { opacity: 0; transform: translateY(40px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    /* Premium Button Hover Effects */
+    /* Hide default Streamlit branding for a cleaner look */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+
+    /* Premium Button Styling */
     div.stButton > button {
-        border-radius: 12px;
-        font-weight: bold;
-        transition: all 0.3s ease;
+        border-radius: 8px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        transition: all 0.2s ease-in-out;
     }
     div.stButton > button:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    /* Center align block elements */
+    .center-content {
+        text-align: center;
+        margin-bottom: 2rem;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. UI Dictionary (Localization) ---
+# --- UI Dictionary (Localization) ---
 UI_TEXT = {
     "English": {
         "title": "🌐 Swara Setu AI",
         "subtitle": "Global Real-Time Communicator",
-        "you_speak": "You Speak:",
-        "they_hear": "They Hear:",
+        "you_speak": "You Speak",
+        "they_hear": "They Hear",
         "swap": "🔄 Swap",
-        "hold_speak": "🎙️ Hold to Speak",
+        "hold_speak": "🎙️ Audio Input",
         "tap_record": "Tap to Record",
         "translate_btn": "Translate & Speak",
-        "translating": "Translating in real-time...",
-        "success": "Translation Complete!",
+        "translating": "Processing translation...",
+        "success": "Translation Successful",
         "settings": "⚙️ App Language"
     },
     "Telugu": {
         "title": "🌐 స్వర సేతు AI",
         "subtitle": "గ్లోబల్ రియల్-టైమ్ కమ్యూనికేటర్",
-        "you_speak": "మీరు మాట్లాడేది:",
-        "they_hear": "వారు వినేది:",
+        "you_speak": "మీరు మాట్లాడేది",
+        "they_hear": "వారు వినేది",
         "swap": "🔄 మార్చండి",
-        "hold_speak": "🎙️ మాట్లాడటానికి పట్టుకోండి",
+        "hold_speak": "🎙️ ఆడియో ఇన్పుట్",
         "tap_record": "రికార్డ్ చేయడానికి నొక్కండి",
         "translate_btn": "అనువదించి వినిపించండి",
         "translating": "అనువదిస్తోంది...",
-        "success": "అనువాదం పూర్తయింది!",
+        "success": "అనువాదం పూర్తయింది",
         "settings": "⚙️ యాప్ భాష"
     },
     "Hindi": {
         "title": "🌐 स्वर सेतु AI",
         "subtitle": "ग्लोबल रियल-टाइम कम्युनिकेटर",
-        "you_speak": "आप बोलते हैं:",
-        "they_hear": "वे सुनते हैं:",
+        "you_speak": "आप बोलते हैं",
+        "they_hear": "वे सुनते हैं",
         "swap": "🔄 बदलें",
-        "hold_speak": "🎙️ बोलने के लिए दबाएं",
+        "hold_speak": "🎙️ ऑडियो इनपुट",
         "tap_record": "रिकॉर्ड करने के लिए टैप करें",
         "translate_btn": "अनुवाद करें और बोलें",
         "translating": "अनुवाद हो रहा है...",
-        "success": "अनुवाद पूरा हुआ!",
+        "success": "अनुवाद पूरा हुआ",
         "settings": "⚙️ ऐप की भाषा"
     }
 }
@@ -104,7 +97,7 @@ LANGUAGES = {
 }
 lang_names = list(LANGUAGES.keys())
 
-# --- 3. State Management ---
+# --- State Management ---
 if 'ui_lang' not in st.session_state:
     st.session_state.ui_lang = "English"
 if 'app_started' not in st.session_state:
@@ -125,74 +118,64 @@ def start_app():
 def reset_app():
     st.session_state.app_started = False
 
-# Helper for animations
 @st.cache_data
 def load_lottieurl(url: str):
     r = requests.get(url)
     return r.json() if r.status_code == 200 else None
 
-lottie_welcome = load_lottieurl("https://assets1.lottiefiles.com/packages/lf20_q5pk6p1k.json")
 lottie_translate = load_lottieurl("https://assets3.lottiefiles.com/packages/lf20_4kji20Y9.json")
 
 # ==========================================
-# STEP 1: WELCOME & APP LANGUAGE SELECTION
+# STEP 1: CLEAN WELCOME SCREEN
 # ==========================================
 if not st.session_state.app_started:
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #0f172a; font-size: 3rem;'>🌐 Swara Setu AI</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #64748b; font-size: 1.1rem; margin-bottom: 2rem;'>Select your preferred interface language<br>మీ యాప్ భాషను ఎంచుకోండి</p>", unsafe_allow_html=True)
     
-    if lottie_welcome:
-        st_lottie(lottie_welcome, height=200, key="welcome_anim")
-        
-    st.title("🌐 Swara Setu AI")
-    st.markdown("<p style='color:gray; font-size:18px;'>Select your preferred app interface language / మీ యాప్ భాషను ఎంచుకోండి</p>", unsafe_allow_html=True)
-    
-    st.session_state.ui_lang = st.selectbox("", ["English", "Telugu", "Hindi"], label_visibility="collapsed")
-    
-    st.write("")
-    st.button("Enter App 🚀", on_click=start_app, type="primary", use_container_width=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Use columns to tightly center the dropdown and button
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.session_state.ui_lang = st.selectbox("Language", ["English", "Telugu", "Hindi"], label_visibility="collapsed")
+        st.write("")
+        st.button("Enter Workspace", on_click=start_app, type="primary", use_container_width=True)
 
 # ==========================================
 # STEP 2: MAIN TRANSLATOR INTERFACE
 # ==========================================
 else:
-    # Load UI text based on selection
     t = UI_TEXT[st.session_state.ui_lang]
     
     # Sidebar for changing App Language back
     with st.sidebar:
         st.button(f"🔙 {t['settings']}", on_click=reset_app, use_container_width=True)
 
-    # Header Card
-    st.markdown(f'''
-        <div class="glass-card">
-            <h1>{t['title']}</h1>
-            <p style="color:#555; font-size:16px;">{t['subtitle']}</p>
-        </div>
-    ''', unsafe_allow_html=True)
+    # Clean Header
+    st.markdown(f"<h1 style='text-align: center; color: #0f172a;'>{t['title']}</h1>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align: center; color: #64748b; margin-bottom: 2rem;'>{t['subtitle']}</p>", unsafe_allow_html=True)
 
-    # Translation Interface Card
-    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-    
+    # Routing Interface
     col1, col2, col3 = st.columns([2, 1, 2])
     with col1:
-        source_language = st.selectbox(t["you_speak"], lang_names, key="src_dropdown")
+        source_language = st.selectbox(f"**{t['you_speak']}**", lang_names, key="src_dropdown")
     with col2:
         st.write("") 
         st.write("")
         st.button(t["swap"], on_click=swap_languages, use_container_width=True)
     with col3:
-        target_language = st.selectbox(t["they_hear"], lang_names, key="tgt_dropdown")
+        target_language = st.selectbox(f"**{t['they_hear']}**", lang_names, key="tgt_dropdown")
 
     src_code = LANGUAGES[source_language]
     tgt_code = LANGUAGES[target_language]
     
-    st.divider()
+    st.markdown("<hr style='border: 1px solid #e2e8f0; margin: 2rem 0;'>", unsafe_allow_html=True)
 
     # Recording Section
-    st.markdown(f"### {t['hold_speak']}")
-    audio_bytes = audio_recorder(text=t["tap_record"], recording_color="#ff4757", neutral_color="#2ed573", icon_size="2x")
+    st.markdown(f"<h3 style='color: #334155;'>{t['hold_speak']}</h3>", unsafe_allow_html=True)
+    
+    col_mic, col_space = st.columns([1, 3])
+    with col_mic:
+        audio_bytes = audio_recorder(text=t["tap_record"], recording_color="#ef4444", neutral_color="#10b981", icon_size="2x")
 
     if audio_bytes:
         temp_input_path = "temp_input.wav"
@@ -200,14 +183,14 @@ else:
             f.write(audio_bytes)
             
         st.audio(audio_bytes, format="audio/wav")
+        st.write("")
 
         if st.button(t["translate_btn"], use_container_width=True, type="primary"):
             
-            st.markdown(f"#### ⚙️ {t['translating']}")
             if lottie_translate:
-                st_lottie(lottie_translate, height=120, key="translating")
+                st_lottie(lottie_translate, height=80, key="translating")
                 
-            with st.spinner('...'):
+            with st.spinner(t['translating']):
                 original_text, translated_text, result = process_audio(temp_input_path, src_code, tgt_code)
 
             if original_text and translated_text and result.endswith('.mp3'):
@@ -217,5 +200,3 @@ else:
                 st.audio(result, format="audio/mp3", autoplay=True) 
             else:
                 st.error(f"Error: {result}")
-                
-    st.markdown('</div>', unsafe_allow_html=True)
