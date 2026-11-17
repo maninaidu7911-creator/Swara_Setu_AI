@@ -87,6 +87,42 @@ st.markdown("""
         box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
 
+    /* Record Box Styling */
+    .record-box {
+        text-align: center;
+        background: #F8FAFC;
+        border: 2px dashed #CBD5E1;
+        border-radius: 15px;
+        padding: 20px;
+        margin: 20px 0;
+        transition: all 0.3s ease;
+    }
+    .record-box:hover {
+        border-color: #3B82F6;
+        background: #EFF6FF;
+    }
+
+    /* Footer Styling */
+    .custom-footer {
+        text-align: center;
+        margin-top: 50px;
+        padding: 20px 0;
+        border-top: 1px solid #E2E8F0;
+    }
+    .custom-footer p {
+        color: #64748B;
+        font-size: 1rem;
+        margin: 0;
+    }
+    .custom-footer a {
+        color: #2563EB;
+        text-decoration: none;
+        font-weight: 700;
+    }
+    .custom-footer a:hover {
+        text-decoration: underline;
+    }
+
     /* Keyframe Animations */
     @keyframes fadeInUp {
         from { opacity: 0; transform: translateY(30px); }
@@ -245,12 +281,14 @@ else:
 
     # Core UI Card 2: Audio Engine
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-    st.markdown(f"<h3 style='color: #1E3A8A; margin-bottom: 20px;'>{t['hold_speak']}</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='color: #1E3A8A; margin-bottom: 20px; text-align: center;'>{t['hold_speak']}</h3>", unsafe_allow_html=True)
     
-    # Center the recorder beautifully
-    col_empty1, col_mic, col_empty2 = st.columns([1, 2, 1])
+    # Styled Audio Record Box
+    st.markdown('<div class="record-box">', unsafe_allow_html=True)
+    col_empty1, col_mic, col_empty2 = st.columns([1, 1, 1])
     with col_mic:
-        audio_bytes = audio_recorder(text=t["tap_record"], recording_color="#EF4444", neutral_color="#10B981", icon_size="2.5x")
+        audio_bytes = audio_recorder(text=t["tap_record"], recording_color="#EF4444", neutral_color="#2563EB", icon_size="2.5x")
+    st.markdown('</div>', unsafe_allow_html=True)
 
     if audio_bytes:
         temp_input_path = "temp_input.wav"
@@ -288,3 +326,12 @@ else:
             else:
                 st.error(f"Error: {result}")
     st.markdown('</div>', unsafe_allow_html=True)
+
+    # ==========================================
+    # STEP 3: CUSTOM DESIGNER FOOTER
+    # ==========================================
+    st.markdown("""
+        <div class="custom-footer">
+            <p>Designed by <a href="https://www.linkedin.com/in/manikanta-dandabattula" target="_blank">Manikanta</a></p>
+        </div>
+    """, unsafe_allow_html=True)
