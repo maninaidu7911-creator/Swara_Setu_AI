@@ -1,13 +1,12 @@
 import streamlit as st
 import os
-import requests
-from streamlit_lottie import st_lottie
+import base64
 from swara_engine import process_audio
 
 # --- Page Config ---
 st.set_page_config(page_title="Swara Setu AI", page_icon="🌐", layout="centered")
 
-# --- Premium Native CSS ---
+# --- Custom CSS (No more glass containers!) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
@@ -41,20 +40,7 @@ st.markdown("""
         animation: fadeIn 1.2s ease-in;
     }
 
-    /* Floating Glassmorphism Cards */
-    .glass-container {
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.5);
-        border-radius: 20px;
-        padding: 25px;
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
-        margin-bottom: 25px;
-        animation: slideUp 0.6s ease-out forwards;
-    }
-
-    /* Premium Buttons */
+    /* Standard Button Styling */
     div.stButton > button {
         background: linear-gradient(90deg, #3b82f6, #2563eb);
         color: white;
@@ -79,14 +65,6 @@ st.markdown("""
         box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
 
-    /* Results Box Styling */
-    div[data-testid="stInfo"], div[data-testid="stSuccess"] {
-        border-radius: 12px;
-        border-left: 5px solid #3B82F6;
-        background: #F8FAFC;
-        color: #334155;
-    }
-
     /* Custom Designer Footer */
     .designer-footer {
         text-align: center;
@@ -103,16 +81,7 @@ st.markdown("""
         font-weight: 800;
         text-decoration: none;
     }
-    .designer-footer a:hover {
-        color: #2563EB;
-        text-decoration: underline;
-    }
 
-    /* Animations */
-    @keyframes slideUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
     @keyframes fadeInDown {
         from { opacity: 0; transform: translateY(-20px); }
         to { opacity: 1; transform: translateY(0); }
@@ -131,10 +100,7 @@ UI_TEXT = {
         "you_speak": "🗣️ You Speak:",
         "they_hear": "🎧 They Hear:",
         "swap": "🔄 Swap",
-        "hold_speak": "🎙️ Tap to Record Audio",
         "translate_btn": "✨ Translate & Speak",
-        "translating": "Processing audio...",
-        "success": "Translation Successful",
         "settings": "⚙️ Language"
     },
     "Telugu": {
@@ -142,10 +108,7 @@ UI_TEXT = {
         "you_speak": "🗣️ మీరు మాట్లాడేది:",
         "they_hear": "🎧 వారు వినేది:",
         "swap": "🔄 మార్చండి",
-        "hold_speak": "🎙️ ఆడియో రికార్డ్ చేయడానికి నొక్కండి",
         "translate_btn": "✨ అనువదించి వినిపించండి",
-        "translating": "అనువదిస్తోంది...",
-        "success": "అనువాదం పూర్తయింది",
         "settings": "⚙️ భాష"
     },
     "Hindi": {
@@ -153,10 +116,7 @@ UI_TEXT = {
         "you_speak": "🗣️ आप बोलते हैं:",
         "they_hear": "🎧 वे सुनते हैं:",
         "swap": "🔄 बदलें",
-        "hold_speak": "🎙️ ऑडियो रिकॉर्ड करने के लिए टैप करें",
         "translate_btn": "✨ अनुवाद करें और बोलें",
-        "translating": "अनुवाद हो रहा है...",
-        "success": "अनुवाद पूरा हुआ",
         "settings": "⚙️ भाषा"
     }
 }
@@ -193,31 +153,118 @@ def start_app():
 def reset_app():
     st.session_state.app_started = False
 
-@st.cache_data
-def load_lottieurl(url: str):
-    r = requests.get(url)
-    return r.json() if r.status_code == 200 else None
+# ==========================================
+# CUSTOM HTML/JS AUDIO RECORDER COMPONENT
+# ==========================================
+def custom_audio_recorder():
+    import streamlit.components.v1 as components
+    
+    # We use a custom HTML button that triggers the browser's MediaRecorder API
+    # The entire width of this button is clickable.
+    html_code = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <style>
+        .record-btn {
+            width: 100%;
+            padding: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+            transition: all 0.2s ease;
+        }
+        .record-btn.recording {
+            background: linear-gradient(90deg, #10b981, #059669);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+    </style>
+    </head>
+    <body>
+        <button id="recordButton" class="record-btn">🎙️ Tap Anywhere Here to Record</button>
+        <script>
+            const button = document.getElementById('recordButton');
+            let mediaRecorder;
+            let audioChunks = [];
+            let isRecording = false;
 
-lottie_wave = load_lottieurl("https://assets3.lottiefiles.com/packages/lf20_4kji20Y9.json")
+            button.addEventListener('click', async () => {
+                if (!isRecording) {
+                    // Start Recording
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        mediaRecorder = new MediaRecorder(stream);
+                        
+                        mediaRecorder.ondataavailable = event => {
+                            audioChunks.push(event.data);
+                        };
+                        
+                        mediaRecorder.onstop = () => {
+                            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                            const reader = new FileReader();
+                            reader.readAsDataURL(audioBlob);
+                            reader.onloadend = () => {
+                                const base64data = reader.result;
+                                // Send data back to Streamlit
+                                window.parent.postMessage({
+                                    type: 'streamlit:setComponentValue',
+                                    value: base64data
+                                }, '*');
+                            };
+                            audioChunks = [];
+                        };
+
+                        mediaRecorder.start();
+                        isRecording = true;
+                        button.textContent = "⏹️ Tap to Stop Recording";
+                        button.classList.add("recording");
+                    } catch (err) {
+                        console.error("Error accessing microphone", err);
+                        button.textContent = "Error: Microphone access denied";
+                    }
+                } else {
+                    // Stop Recording
+                    mediaRecorder.stop();
+                    isRecording = false;
+                    button.textContent = "✅ Audio Captured! (Tap to record again)";
+                    button.classList.remove("recording");
+                }
+            });
+        </script>
+    </body>
+    </html>
+    """
+    # Create the component
+    return components.html(html_code, height=90)
+
 
 # ==========================================
-# STEP 1: WELCOME SCREEN
+# STEP 1: WELCOME SCREEN (Cleaned)
 # ==========================================
 if not st.session_state.app_started:
     st.markdown("<br><br><br>", unsafe_allow_html=True)
     st.markdown("<h1 class='hero-title'>Swara Setu AI</h1>", unsafe_allow_html=True)
     st.markdown("<p class='hero-subtitle'>Select your preferred interface language<br>మీ యాప్ భాషను ఎంచుకోండి</p>", unsafe_allow_html=True)
     
-    st.markdown('<div class="glass-container">', unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.session_state.ui_lang = st.selectbox("Language / భాష", ["English", "Telugu", "Hindi"], label_visibility="collapsed")
         st.write("")
-        st.button("Launch App 🚀", on_click=start_app, type="primary", use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.button("Launch App 🚀", on_click=start_app, type="primary")
 
 # ==========================================
-# STEP 2: PROFESSIONAL WORKSPACE
+# STEP 2: PROFESSIONAL WORKSPACE (Cleaned)
 # ==========================================
 else:
     t = UI_TEXT[st.session_state.ui_lang]
@@ -228,8 +275,7 @@ else:
     st.markdown("<h1 class='hero-title'>Swara Setu AI</h1>", unsafe_allow_html=True)
     st.markdown(f"<p class='hero-subtitle'>{t['subtitle']}</p>", unsafe_allow_html=True)
 
-    # Core Panel 1: Language Routing
-    st.markdown('<div class="glass-container">', unsafe_allow_html=True)
+    # Language Routing
     col1, col2, col3 = st.columns([5, 2, 5])
     with col1:
         source_language = st.selectbox(f"**{t['you_speak']}**", lang_names, key="src_dropdown")
@@ -239,45 +285,43 @@ else:
         st.button(t["swap"], on_click=swap_languages)
     with col3:
         target_language = st.selectbox(f"**{t['they_hear']}**", lang_names, key="tgt_dropdown")
-    st.markdown('</div>', unsafe_allow_html=True)
 
     src_code = LANGUAGES[source_language]
     tgt_code = LANGUAGES[target_language]
-
-    # Core Panel 2: Native Big Audio Button
-    st.markdown('<div class="glass-container">', unsafe_allow_html=True)
     
-    # Streamlit's new native audio input creates a massive, fully clickable UI exactly like your sketch
-    audio_value = st.audio_input(t['hold_speak'])
+    st.divider()
 
-    if audio_value:
-        audio_bytes = audio_value.read()
-        temp_input_path = "temp_input.wav"
-        with open(temp_input_path, "wb") as f:
-            f.write(audio_bytes)
+    # --- CUSTOM AUDIO RECORDER BUTTON ---
+    audio_data_url = custom_audio_recorder()
+
+    # Process Audio if captured
+    if audio_data_url:
+        try:
+            # Decode the base64 audio data returned from the JS component
+            audio_data_str = audio_data_url.split(",")[1]
+            audio_bytes = base64.b64decode(audio_data_str)
             
-        st.write("")
+            temp_input_path = "temp_input.wav"
+            with open(temp_input_path, "wb") as f:
+                f.write(audio_bytes)
+                
+            st.audio(temp_input_path, format="audio/wav")
+            st.write("")
 
-        if st.button(t["translate_btn"], type="primary"):
-            
-            if lottie_wave:
-                st_lottie(lottie_wave, height=80, key="translating")
-                
-            with st.spinner(t['translating']):
-                original_text, translated_text, result = process_audio(temp_input_path, src_code, tgt_code)
+            if st.button(t["translate_btn"], type="primary"):
+                with st.spinner("Processing audio..."):
+                    original_text, translated_text, result = process_audio(temp_input_path, src_code, tgt_code)
 
-            if original_text and translated_text and result.endswith('.mp3'):
-                st.success(t["success"])
-                
-                # Output using Streamlit's native info/success boxes with custom styling
-                st.info(f"**Original ({source_language}):**\n\n{original_text}")
-                st.success(f"**Translation ({target_language}):**\n\n{translated_text}")
-                
-                st.write("")
-                st.audio(result, format="audio/mp3", autoplay=True) 
-            else:
-                st.error(f"Error: {result}")
-    st.markdown('</div>', unsafe_allow_html=True)
+                if original_text and translated_text and result.endswith('.mp3'):
+                    st.success("Translation Successful")
+                    st.info(f"**Original ({source_language}):**\n\n{original_text}")
+                    st.success(f"**Translation ({target_language}):**\n\n{translated_text}")
+                    st.write("")
+                    st.audio(result, format="audio/mp3", autoplay=True) 
+                else:
+                    st.error(f"Error: {result}")
+        except Exception as e:
+            pass # Ignore component initialization errors
 
     # Custom Footer
     st.markdown("""
@@ -285,5 +329,3 @@ else:
             <p>Designed by <a href="https://www.linkedin.com/in/dandabattula-manikanta" target="_blank">Manikanta</a></p>
         </div>
     """, unsafe_allow_html=True)
-
-
