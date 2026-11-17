@@ -192,7 +192,7 @@ def custom_audio_recorder():
     </style>
     </head>
     <body>
-        <button id="recordButton" class="record-btn">🎙️ Tap Anywhere Here to Record</button>
+        <button id="recordButton" class="record-btn">🎙️ Tap Here to Record</button>
         <script>
             const button = document.getElementById('recordButton');
             let mediaRecorder;
